@@ -1,0 +1,6 @@
+set CONDA_DOCKER_PYTHON=3.12
+set CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge
+docker compose build --no-cache
+docker compose run interactive
+set "CONDA_DOCKER_PYTHON="
+set "CONDA_DOCKER_DEFAULT_CHANNEL="
