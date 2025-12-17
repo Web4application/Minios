@@ -1,0 +1,13 @@
+from lmlm.main import run_inference
+
+def start():
+    print("MiniOS with LMLM support is running!")
+    while True:
+        user_input = input("Enter text for LMLM inference (or 'exit'): ")
+        if user_input.lower() == "exit":
+            break
+        output = run_inference(user_input)
+        print("LMLM Output:\n", output)
+
+if __name__ == "__main__":
+    start()
