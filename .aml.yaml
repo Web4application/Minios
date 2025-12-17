@@ -1,0 +1,68 @@
+#%Dialect 1.0
+
+dialect: Person Card
+version: 1.0
+
+external:
+  schema: http://schema.org/
+
+nodeMappings:
+
+  PersonNode:
+    classTerm: schema.Person
+    mapping:
+      name:
+        propertyTerm: schema.name
+        range: string
+      born:
+        propertyTerm: schema.birthDate
+        range: date
+      email:
+        propertyTerm: schema.email
+        range: string
+      gender:
+        propertyTerm: schema.gender
+        range: string
+      nationality:
+        propertyTerm: schema.nationality
+        range: string
+      job:
+        propertyTerm: schema.jobTitle
+        range: string
+      socialLinks:
+        propertyTerm: schema.sameAs
+        range: string
+      projects:
+        propertyTerm: schema.hasPart
+        range: string
+      expertise:
+        propertyTerm: schema.knowsAbout
+        range: string
+
+documents:
+  root:
+    encodes: PersonNode
+    name: Seriki Yakub
+    born: 2002-10-15
+    email: kubulee.kl@gmail.com
+    gender: male
+    nationality: Nigerian
+    job: AI, blockchain & software developer
+    socialLinks:
+      - https://github.com/Web4application
+      - https://twitter.com/kubu_lee
+      - https://linkedin.com/in/serikiyakub
+    projects:
+      - Fluukpe
+      - QUBUHUB
+      - GPT-5
+      - RODAAI
+      - Fadaka
+      - Web4AI Project Assistant
+    expertise:
+      - Artificial Intelligence
+      - Web3 & Blockchain
+      - Software Development
+      - Crypto Technologies
+      - Full-stack Web Development
+      - LLM Integration & AI Automation
