@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# MarkLogic 8.0-5 Digital Ocean Centos 6.7 64bit
+
+# log everything to a file
+exec &> $HOME/stackscript.log
+
+# yum -y: assume yes, -q: quiet
+yum -yq update
+yum -yq install nano tree wget gcc gcc-c++ make zlib-devel pcre-devel openssl-devel java-1.7.0-openjdk-devel
+wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo
+yum -yq install apache-maven
+
+yum -yq groupinstall 'Development Tools'
+yum -yq install glibc glibc.i686 lsb
+
+curl -o MarkLogic-RHEL6-8.0-5.x86_64.rpm "https://developer.marklogic.com/download/binaries/8.0/MarkLogic-RHEL6-8.0-5.x86_64.rpm?t=5bfgbebCkZ/1KkgggvKp30&email=xxx%40gmail.com"
+rpm -iv MarkLogic-RHEL6-8.0-5.x86_64.rpm
+#rm MarkLogic-RHEL6-8.0-5.x86_64.rpm
+
+
+
+# Set Linux huge pages
+echo "vm.nr_hugepages = 292" >> /etc/sysctl.conf
+sysctl -p
+
+# Flush all curren
+
+t rules from iptables
+iptables -F
+
+#First, we start with blocking null packets
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+
+#The next pattern to reject is a syn-flood attack.
+iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+
+#XMAS packets, also a recon packet.
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+
+# Set access for localhost
+iptables -A INPUT -i lo -j ACCEPT
+
+#Now we can allow web server traffic:
+iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT
+
+#Now, let's allow users use our SMTP servers:
+iptables -A INPUT -p tcp -m tcp --dport 25 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 465 -j ACCEPT
+
+# Allow SSH connections on tcp port 22
+# This is essential when working on remote servers via SSH to prevent locking yourself out of the system
+iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+
+#allow us to use outgoing connections (ie. ping from VPS or run software updates);
+iptables -I INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT 
+
+# We will block everything else, and allow all outgoing connections.
+iptables -P OUTPUT ACCEPT
+iptables -P INPUT DROP
+
+# Note eth0 interface
+iptables -A INPUT -p tcp -m tcp --dport 7999 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 8000 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 8001 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 8002 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 8010 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 8012 -j ACCEPT
+
+service iptables save 
+
+mkdir -p src && cd src
+nginxVersion="1.8.1"
+wget http://nginx.org/download/nginx-$nginxVersion.tar.gz
+tar -xzf nginx-$nginxVersion.tar.gz 
+ln -sf nginx-$nginxVersion nginx
+
+cd nginx
+
+./configure \
+--user=nginx                          \
+--group=nginx                         \
+--prefix=/etc/nginx                   \
+--sbin-path=/usr/sbin/nginx           \
+--conf-path=/etc/nginx/nginx.conf     \
+--pid-path=/var/run/nginx.pid         \
+--lock-path=/var/run/nginx.lock       \
+--error-log-path=/var/log/nginx/error.log \
+--http-log-path=/var/log/nginx/access.log \
+--with-http_gzip_static_module        \
+--with-http_stub_status_module        \
+--with-http_ssl_module                \
+--with-pcre                           \
+--with-file-aio                       \
+--with-http_realip_module             \
+--without-http_scgi_module            \
+--without-http_uwsgi_module           \
+--without-http_fastcgi_module
+
+make
+make install
+
+useradd -r nginx
+
+wget -O /etc/init.d/nginx "https://gist.github.com/sairam/5892520/raw/b8195a71e944d46271c8a49f2717f70bcd04bf1a/etc-init.d-nginx"
+chmod +x /etc/init.d/nginx
+
+chkconfig --add nginx
+chkconfig --level 345 nginx on
+
+
+#Manually Configure
+#nano /etc/nginx/nginx.conf to set types_hash_bucket_size and server_names_hash_bucket_size which needs to be increased.
+
+#http {
+#    include       mime.types;
+#    default_type  application/octet-stream;
+    # add the below 2 lines under http around line 20
+#    types_hash_bucket_size 64;
+#    server_names_hash_bucket_size 128;
+
+#service MarkLogic start
+#service nginx start
